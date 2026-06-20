@@ -15,10 +15,10 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Terraform
-RUN wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip \
-    && unzip terraform_1.6.0_linux_amd64.zip \
+RUN wget https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip \
+    && unzip terraform_1.9.8_linux_amd64.zip \
     && mv terraform /usr/local/bin/ \
-    && rm terraform_1.6.0_linux_amd64.zip
+    && rm terraform_1.9.8_linux_amd64.zip
 
 # Install AWS CLI
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \

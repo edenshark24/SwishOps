@@ -15,8 +15,4 @@
       ]
     }
   },
-  "mounts": [
-    "source=${localEnv:HOME}/.aws,target=/root/.aws,type=bind"
-  ],
   "remoteUser": "root"
-}
