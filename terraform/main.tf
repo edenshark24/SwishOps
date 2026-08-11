@@ -24,3 +24,25 @@ module "networking" {
   project_name = var.project_name
   environment  = var.environment
 }
+
+module "iam" {
+  source       = "./modules/iam"
+  project_name = var.project_name
+  environment  = var.environment
+}
+
+module "ecr" {
+  source       = "./modules/ecr"
+  project_name = var.project_name
+  environment  = var.environment
+}
+
+module "eks" {
+  source                  = "./modules/eks"
+  project_name            = var.project_name
+  environment             = var.environment
+  vpc_id                  = module.networking.vpc_id
+  private_subnet_ids      = module.networking.private_subnet_ids
+  eks_cluster_role_arn    = module.iam.eks_cluster_role_arn
+  eks_node_group_role_arn = module.iam.eks_node_group_role_arn
+}
