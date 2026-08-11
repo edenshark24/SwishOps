@@ -46,3 +46,14 @@ module "eks" {
   eks_cluster_role_arn    = module.iam.eks_cluster_role_arn
   eks_node_group_role_arn = module.iam.eks_node_group_role_arn
 }
+
+module "rds" {
+  source             = "./modules/rds"
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_id             = module.networking.vpc_id
+  private_subnet_ids = module.networking.private_subnet_ids
+  db_name            = var.db_name
+  db_username        = var.db_username
+  db_password        = var.db_password
+}

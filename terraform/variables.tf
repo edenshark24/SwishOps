@@ -16,3 +16,21 @@ variable "aws_region" {
   type        = string
   default     = "us-east-1"
 }
+
+variable "db_name" {
+  description = "name of the database"
+  type        = string
+  default     = "swishops"
+}
+
+variable "db_username" {
+  description = "database username"
+  type        = string
+  default     = "swishops_admin"
+}
+
+variable "db_password" {
+  description = "database password"
+  type        = string
+  sensitive   = true
+}
