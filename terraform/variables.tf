@@ -34,3 +34,9 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "nba_api_key" {
+  description = "api key for nba api"
+  type        = string
+  sensitive   = true
+}

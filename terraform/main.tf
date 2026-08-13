@@ -57,3 +57,11 @@ module "rds" {
   db_username        = var.db_username
   db_password        = var.db_password
 }
+
+module "secrets" {
+  source       = "./modules/secrets"
+  project_name = var.project_name
+  environment  = var.environment
+  db_password  = var.db_password
+  nba_api_key  = var.nba_api_key
+}
