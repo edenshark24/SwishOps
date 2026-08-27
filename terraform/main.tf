@@ -26,9 +26,11 @@ module "networking" {
 }
 
 module "iam" {
-  source       = "./modules/iam"
-  project_name = var.project_name
-  environment  = var.environment
+  source                 = "./modules/iam"
+  project_name           = var.project_name
+  environment            = var.environment
+  db_password_secret_arn = module.secrets.db_password_arn
+  nba_api_key_secret_arn = module.secrets.nba_api_key_arn
 }
 
 module "ecr" {
@@ -64,4 +66,15 @@ module "secrets" {
   environment  = var.environment
   db_password  = var.db_password
   nba_api_key  = var.nba_api_key
+}
+
+module "lambda" {
+  source = "./modules/lambda"
+
+  lambda_role_arn          = module.iam.lambda_role_arn
+  private_subnet_ids       = module.networking.private_subnet_ids
+  lambda_security_group_id = module.networking.nodes_security_group_id
+  nba_api_key_secret_arn   = module.secrets.nba_api_key_arn
+  db_password_secret_arn   = module.secrets.db_password_arn
+  db_host                  = module.rds.db_endpoint
 }

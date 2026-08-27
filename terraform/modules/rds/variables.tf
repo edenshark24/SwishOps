@@ -12,23 +12,24 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "db_name"  {
+variable "db_name" {
   description = "name for db"
-  type = string 
+  type        = string
 }
 
-variable "db_password"  {
+variable "db_password" {
   description = "password for db"
-  type = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
-variable "db_username"  {
-  description= "username for db"
-  type = string
+variable "db_username" {
+  description = "username for db"
+  type        = string
 }
 
 variable "private_subnet_ids" {
-    description = "private subnet IDs for db"
-    type        = list(string)
+  description = "private subnet IDs for db"
+  type        = list(string)
 }
+

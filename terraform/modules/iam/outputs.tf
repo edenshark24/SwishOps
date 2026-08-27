@@ -10,3 +10,4 @@ output "lambda_role_arn" {
   description = "lambda arn role"
   value       = aws_iam_role.lambda.arn
 }
+
