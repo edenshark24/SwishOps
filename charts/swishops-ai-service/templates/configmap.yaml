@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swishops-ai-service-config
+  labels:
+    app.kubernetes.io/name: swishops-ai-service
+data:
+  ENVIRONMENT: {{ .Values.config.environment | default "production" }}
+  MODEL_NAME: {{ .Values.config.modelName | default "nba-stats-predictor-v1" }}

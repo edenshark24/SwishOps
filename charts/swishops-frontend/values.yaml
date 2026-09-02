@@ -1,0 +1,28 @@
+replicaCount: 2
+
+image:
+  repository: <your-ecr-url>/swishops-frontend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+hpa:
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+
+config:
+  environment: production
+  apiBaseUrl: "http://swishops-backend-svc"

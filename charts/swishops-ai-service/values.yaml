@@ -1,0 +1,28 @@
+replicaCount: 1
+
+image:
+  repository: <your-ecr-url>/swishops-ai-service
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+config:
+  environment: production
+  modelName: "nba-stats-predictor-v1"
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80

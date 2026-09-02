@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: swishops-ai-service-svc
+  labels:
+    app.kubernetes.io/name: swishops-ai-service
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: swishops-ai-service
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
