@@ -1,7 +1,6 @@
-
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/src" # you'll drop your Python code here
+  source_dir  = "${path.root}/../lambda" 
   output_path = "${path.module}/lambda_function.zip"
 }
 
@@ -12,8 +11,8 @@ resource "aws_lambda_function" "nba_data_fetcher" {
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  runtime = "python3.10"
-  handler = "nba_fetcher.lambda_handler"
+  runtime = "python3.11"
+  handler = "lambda_function.lambda_handler"
 
   timeout     = 30
   memory_size = 256
@@ -44,7 +43,7 @@ resource "aws_cloudwatch_event_target" "nba_fetch_target" {
 resource "aws_lambda_permission" "allow_eventbridge" {
   statement_id  = "AllowEventBridgeInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.nba_data_fetcher.function_name # <-- change .name to .function_name here
+  function_name = aws_lambda_function.nba_data_fetcher.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.nba_fetch_schedule.arn
 }
