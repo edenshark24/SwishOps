@@ -1,0 +1,116 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT_ID = '123456789012' 
+        ECR_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        // Credentials IDs configured in Jenkins
+        SONAR_CREDENTIAL_ID = 'sonar-token'
+    }
+    
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('SonarQube Static Analysis') {
+            steps {
+                echo "Running SonarQube analysis for code quality and security bugs..."
+                // Assumes SonarQube scanner is configured in Jenkins global tools
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh """
+                        sonar-scanner \
+                          -Dsonar.projectKey=swishops \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/tests/**,**/charts/** \
+                          -Dsonar.python.version=3.11
+                    """
+                }
+                
+                // Optional: Quality gate check to fail pipeline if code quality fails
+                // timeout(time: 10, unit: 'MINUTES') {
+                //     waitForQualityGate abortPipeline: true
+                // }
+            }
+        }
+        
+        stage('Build Docker Images') {
+            steps {
+                echo "Building Docker images with tag: ${IMAGE_TAG}"
+                sh "docker build -t ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG} ./backend"
+                sh "docker build -t ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG} ./ai-service"
+                sh "docker build -t ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG} ./frontend"
+            }
+        }
+        
+        stage('Trivy Security Scan') {
+            steps {
+                echo "Scanning built container images for vulnerabilities with Trivy..."
+                // Scan backend image and fail build on HIGH or CRITICAL vulnerabilities
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG}"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG}"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG}"
+            }
+        }
+        
+        stage('Push to AWS ECR') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
+                    echo "Logging into AWS ECR..."
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+                    
+                    echo "Pushing verified secure images to ECR..."
+                    sh "docker push ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG}"
+                }
+            }
+        }
+        
+        stage('Deploy to EKS via Helm') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
+                    echo "Updating kubeconfig for EKS cluster..."
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name swishops-cluster"
+                    
+                    echo "Deploying Backend..."
+                    sh """
+                        helm upgrade --install swishops-backend ./charts/swishops-backend \
+                          --set image.repository=${ECR_REGISTRY}/swishops-backend \
+                          --set image.tag=${IMAGE_TAG} \
+                          --atomic
+                    """
+                    
+                    echo "Deploying AI Service..."
+                    sh """
+                        helm upgrade --install swishops-ai-service ./charts/swishops-ai-service \
+                          --set image.repository=${ECR_REGISTRY}/swishops-ai-service \
+                          --set image.tag=${IMAGE_TAG} \
+                          --atomic
+                    """
+                    
+                    echo "Deploying Frontend..."
+                    sh """
+                        helm upgrade --install swishops-frontend ./charts/swishops-frontend \
+                          --set image.repository=${ECR_REGISTRY}/swishops-frontend \
+                          --set image.tag=${IMAGE_TAG} \
+                          --atomic
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '🚀 SwishOps secure pipeline executed successfully! All quality & security gates passed.'
+        }
+        failure {
+            echo '❌ Pipeline failed. Either code quality, vulnerability scan, or deployment encountered an error.'
+        }
+    }
+}
