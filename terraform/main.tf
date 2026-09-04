@@ -53,6 +53,7 @@ module "rds" {
   source             = "./modules/rds"
   project_name       = var.project_name
   environment        = var.environment
+  rds_security_group_id = module.networking.rds_security_group_id
   vpc_id             = module.networking.vpc_id
   private_subnet_ids = module.networking.private_subnet_ids
   db_name            = var.db_name
