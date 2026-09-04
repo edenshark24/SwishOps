@@ -103,14 +103,51 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy Monitoring Stack') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
+                    echo "🔐 Fetching Grafana credentials from AWS Secrets Manager..."
+                    
+                    def secretJson = sh(
+                        script: "aws secretsmanager get-secret-value --secret-id swishops/grafana --region ${AWS_REGION} --query SecretString --output text",
+                        returnStdout: true
+                    ).trim()
+
+                    def grafanaPass = sh(
+                        script: "echo '${secretJson}' | jq -r .password",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "📦 Ensuring monitoring namespace exists..."
+                    sh "kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -"
+
+                    echo "🔑 Applying Grafana admin credentials secret..."
+                    sh """
+                        kubectl create secret generic grafana-admin-credentials \
+                          --namespace=monitoring \
+                          --from-literal=admin-user=admin \
+                          --from-literal=admin-password='${grafanaPass}' \
+                          --dry-run=client -o yaml | kubectl apply -f -
+                    """
+
+                    echo "🚀 Deploying/Upgrading Prometheus & Grafana Helm Chart..."
+                    sh """
+                        helm upgrade --install swishops-monitoring prometheus-community/kube-prometheus-stack \
+                          --namespace monitoring \
+                          -f monitoring/values.yaml
+                    """
+                }
+            }
+        }
     }
     
     post {
         success {
-            echo '🚀 SwishOps secure pipeline executed successfully! All quality & security gates passed.'
+            echo '🚀 SwishOps secure pipeline executed successfully! All quality, security gates, and monitoring stacks deployed.'
         }
         failure {
-            echo '❌ Pipeline failed. Either code quality, vulnerability scan, or deployment encountered an error.'
+            echo '❌ Pipeline failed. Either code quality, vulnerability scan, deployment, or monitoring setup encountered an error.'
         }
     }
 }
