@@ -27,7 +27,6 @@ def get_secret(secret_arn):
         response = client.get_secret_value(SecretId=secret_arn)
         if 'SecretString' in response:
             secret = response['SecretString']
-            # If the secret is stored as a JSON string (like DB credentials), parse it
             try:
                 return json.loads(secret)
             except json.JSONDecodeError:
@@ -42,13 +41,12 @@ def lambda_handler(event, context):
     
     # Fetch secrets dynamically at runtime
     db_pass_secret = get_secret(DB_PASSWORD_SECRET_ARN)
-    # If stored as a JSON object, extract the password key, otherwise use string directly
     db_password = db_pass_secret.get('password') if isinstance(db_pass_secret, dict) else db_pass_secret
     
     api_key_secret = get_secret(NBA_API_KEY_SECRET_ARN)
     api_key = api_key_secret.get('api_key') if isinstance(api_key_secret, dict) else (api_key_secret or "mock-key")
 
-    # 1. Fetch current game data from external API
+    # 1. Fetch current game data from external API (Fail Fast Strategy)
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
     headers = {"Authorization": api_key}
     params = {"dates[]": today_str}
@@ -56,19 +54,31 @@ def lambda_handler(event, context):
     games_data = []
     try:
         response = requests.get(NBA_API_URL, headers=headers, params=params, timeout=10)
-        if response.status_code == 200:
-            games_data = response.json().get("data", [])
-            print(f"Successfully fetched {len(games_data)} games from NBA API.")
-        else:
-            print(f"⚠️ API returned status code {response.status_code}. Using fallback mock data.")
-            games_data = [
-                {"home_team": {"name": "Celtics"}, "visitor_team": {"name": "Nuggets"}, "status": "Live", "home_team_score": 58, "visitor_team_score": 54}
-            ]
+        
+        if response.status_code != 200:
+            print(f"❌ External API returned non-200 status code: {response.status_code} - {response.text}")
+            return {
+                "statusCode": 502,
+                "body": json.dumps(f"External API failed with status code {response.status_code}")
+            }
+            
+        games_data = response.json().get("data", [])
+        print(f"Successfully fetched {len(games_data)} games from NBA API.")
+        
+    except requests.exceptions.RequestException as req_err:
+        print(f"❌ Network or connection error fetching external NBA data: {str(req_err)}")
+        return {
+            "statusCode": 502,
+            "body": json.dumps(f"Failed to connect to external NBA API: {str(req_err)}")
+        }
     except Exception as e:
-        print(f"❌ Error fetching external NBA data: {str(e)}")
-        games_data = [{"home_team": {"name": "Celtics"}, "visitor_team": {"name": "Nuggets"}, "status": "Live", "home_team_score": 58, "visitor_team_score": 54}]
+        print(f"❌ Unexpected error fetching external NBA data: {str(e)}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps(f"Unexpected error: {str(e)}")
+        }
 
-    # 2. Connect to PostgreSQL RDS using fetched credentials
+    # 2. Connect to PostgreSQL RDS using fetched credentials and sync data
     conn = None
     try:
         conn = psycopg2.connect(
@@ -112,7 +122,10 @@ def lambda_handler(event, context):
         print(f"❌ Database error: {str(db_error)}")
         if conn:
             conn.rollback()
-        return {"statusCode": 500, "body": json.dumps("Database synchronization failed")}
+        return {
+            "statusCode": 500, 
+            "body": json.dumps("Database synchronization failed")
+        }
     finally:
         if conn:
             conn.close()
