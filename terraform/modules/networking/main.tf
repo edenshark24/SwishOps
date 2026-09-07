@@ -51,18 +51,24 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Elastic IP for NAT Gateway
+# Elastic IPs for NAT Gateways (One per AZ)
 resource "aws_eip" "nat" {
+  count  = length(var.public_subnet_cidrs)
   domain = "vpc"
-}
-
-# NAT Gateway
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public[0].id
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-nat"
+    Name = "${var.project_name}-${var.environment}-eip-${count.index + 1}"
+  }
+}
+
+# NAT Gateways (One per AZ for High Availability)
+resource "aws_nat_gateway" "main" {
+  count         = length(var.public_subnet_cidrs)
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-${count.index + 1}"
   }
 }
 
@@ -80,17 +86,18 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Route table for private subnets
+# Route tables for private subnets (One per AZ mapping to its local NAT Gateway)
 resource "aws_route_table" "private" {
+  count  = length(var.private_subnet_cidrs)
   vpc_id = aws_vpc.main.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main.id
+    nat_gateway_id = aws_nat_gateway.main[count.index].id
   }
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-private-rt"
+    Name = "${var.project_name}-${var.environment}-private-rt-${count.index + 1}"
   }
 }
 
@@ -101,11 +108,11 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Associate private subnets with private route table
+# Associate private subnets with their respective private route tables
 resource "aws_route_table_association" "private" {
   count          = length(var.private_subnet_cidrs)
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[count.index].id
 }
 
 # ─── Security Groups (shells only - no cross references) ─────────
