@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         AWS_REGION = 'us-east-1'
-        AWS_ACCOUNT_ID = '123456789012' 
+        // AWS_ACCOUNT_ID is injected as a global/job environment variable in Jenkins (never hardcode it)
         ECR_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         // Credentials IDs configured in Jenkins
@@ -31,13 +31,25 @@ pipeline {
                     """
                 }
                 
-                // Optional: Quality gate check to fail pipeline if code quality fails
-                // timeout(time: 10, unit: 'MINUTES') {
-                //     waitForQualityGate abortPipeline: true
-                // }
+                // Quality gate check to fail pipeline if code quality fails
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
-        
+
+        stage('Run Unit Tests') {
+            steps {
+                echo "Running Python unit tests with pytest before building images..."
+                sh """
+                    python3 -m venv .venv
+                    . .venv/bin/activate
+                    pip install --no-cache-dir -r tests/requirements.txt
+                    pytest tests/ -v
+                """
+            }
+        }
+
         stage('Build Docker Images') {
             steps {
                 echo "Building Docker images with tag: ${IMAGE_TAG}"

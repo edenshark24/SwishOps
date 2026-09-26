@@ -3,6 +3,22 @@
 prometheus:
   prometheusSpec:
     retention: "7d"
+    # Scrape the application services in the default namespace
+    additionalScrapeConfigs:
+      - job_name: "swishops-backend"
+        metrics_path: /metrics
+        static_configs:
+          - targets:
+              - "swishops-backend-svc.default.svc.cluster.local:8000"
+            labels:
+              service: swishops-backend
+      - job_name: "swishops-ai-service"
+        metrics_path: /metrics
+        static_configs:
+          - targets:
+              - "swishops-ai-service-svc.default.svc.cluster.local:5000"
+            labels:
+              service: swishops-ai-service
     resources:
       requests:
         cpu: 500m
