@@ -1,9 +1,9 @@
 replicaCount: 2
 
 image:
-  repository: <your-ecr-url>/swishops-frontend
+  repository: ${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/swishops-frontend
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "1.0.0"
 
 service:
   type: ClusterIP
