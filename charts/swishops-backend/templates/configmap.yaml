@@ -8,3 +8,7 @@ data:
   ENVIRONMENT: {{ .Values.config.environment | default "production" }}
   LOG_LEVEL: {{ .Values.config.logLevel | default "info" }}
   API_PORT: {{ .Values.service.port | quote }}
+  DB_HOST: {{ .Values.db.host | quote }}
+  DB_NAME: {{ .Values.db.name | quote }}
+  DB_USER: {{ .Values.db.user | quote }}
+  DB_PORT: {{ .Values.db.port | quote }}

@@ -23,6 +23,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: swishops-backend-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.passwordSecretName }}
+                  key: {{ .Values.db.passwordSecretKey }}
           livenessProbe:
             httpGet:
               path: /health
