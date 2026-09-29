@@ -48,6 +48,11 @@ resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
   role       = aws_iam_role.eks_node_group.name
 }
 
+resource "aws_iam_role_policy_attachment" "eks_bedrock_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonBedrockFullAccess"
+  role       = aws_iam_role.eks_node_group.name
+}
+
 resource "aws_iam_role" "lambda" {
   name = "${var.project_name}-${var.environment}-lambda"
 
