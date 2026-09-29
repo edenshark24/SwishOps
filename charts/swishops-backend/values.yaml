@@ -26,3 +26,11 @@ hpa:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
+
+db:
+  host: ""
+  name: "swishops"
+  user: "dbadmin"
+  port: "5432"
+  passwordSecretName: "swishops-db-secret"
+  passwordSecretKey: "password"
