@@ -18,17 +18,20 @@ spec:
         - name: swishops-frontend
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Chart.Name }}-config
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 30
             periodSeconds: 15
           readinessProbe:
             httpGet:
-              path: /
+              path: /health
               port: {{ .Values.service.targetPort }}
             initialDelaySeconds: 10
             periodSeconds: 5
