@@ -10,8 +10,11 @@ import httpx
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="SwishOps AI Analytics Service", version="1.0.0")
+# Expose Prometheus metrics; keep probe and scrape traffic out of the request metrics.
+Instrumentator(excluded_handlers=["^/metrics$", "^/health$"]).instrument(app).expose(app, endpoint="/metrics")
 
 MODEL_NAME = os.getenv("MODEL_NAME", "nba-stats-predictor-v1")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info")

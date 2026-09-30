@@ -28,3 +28,13 @@ def test_get_nba_stats():
     body = resp.json()
     assert "matchups" in body
     assert body["matchups"][0]["home"] == "Boston Celtics"
+
+
+def test_metrics_endpoint():
+    client.get("/health")
+    client.get("/api/nba/stats")
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    body = resp.text
+    assert "http_requests_total" in body or "http_request_duration" in body
+    assert 'handler="/health"' not in body

@@ -28,3 +28,13 @@ def test_predict_trends():
     body = resp.json()
     assert body["model_used"] == "nba-stats-predictor-v1"
     assert "prediction" in body
+
+
+def test_metrics_endpoint():
+    client.get("/health")
+    client.post("/api/ai/predict", json={"team": "Celtics"})
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    body = resp.text
+    assert "http_requests_total" in body or "http_request_duration" in body
+    assert 'handler="/health"' not in body
