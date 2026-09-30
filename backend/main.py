@@ -7,8 +7,11 @@ from fastapi import Depends, FastAPI, HTTPException
 import psycopg2
 from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
+from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="SwishOps Backend", version="1.0.0")
+# Expose Prometheus metrics; keep probe and scrape traffic out of the request metrics.
+Instrumentator(excluded_handlers=["^/metrics$", "^/health$"]).instrument(app).expose(app, endpoint="/metrics")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
