@@ -5,5 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: {{ .Chart.Name }}
 data:
-  ENVIRONMENT: {{ .Values.config.environment | default "production" }}
-  API_BASE_URL: {{ .Values.config.apiBaseUrl | default "http://swishops-backend-svc" }}
+  ENVIRONMENT: {{ .Values.config.environment | default "production" | quote }}
+  API_BASE_URL: {{ .Values.config.apiBaseUrl | default "http://swishops-backend-svc" | quote }}
+  AI_SERVICE_URL: {{ .Values.config.aiServiceUrl | default "http://swishops-ai-service-svc" | quote }}
+  PORT: {{ .Values.config.port | default "3000" | quote }}

@@ -18,6 +18,9 @@ spec:
         - name: swishops-frontend
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Chart.Name }}-config
           ports:
             - containerPort: {{ .Values.service.targetPort }}
           livenessProbe:

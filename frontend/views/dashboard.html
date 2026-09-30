@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwishOps — NBA Fantasy Intelligence</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-hover: #273549;
+    --border: #334155;
+    --accent: #f97316;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --up: #22c55e;
+    --down: #ef4444;
+    --warn: #facc15;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem 2rem; }
+
+  header {
+    padding: 1.5rem 1rem;
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+  header h1 { font-size: 2rem; letter-spacing: -0.02em; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 0.95rem; }
+
+  h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  h2 small { color: var(--muted); font-weight: 400; font-size: 0.75rem; }
+
+  section { margin-bottom: 1.75rem; }
+
+  /* ── Today's games ─────────────────────────────────────────── */
+  .games-bar {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x mandatory;
+  }
+  .games-bar::-webkit-scrollbar { height: 6px; }
+  .games-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .game {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+  .game .teams { font-weight: 600; }
+  .game .sep { color: var(--border); margin: 0 0.4rem; }
+  .game .score { color: var(--accent); font-weight: 700; }
+  .game .status { color: var(--muted); }
+
+  /* ── Trend columns ─────────────────────────────────────────── */
+  .trends { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .player-list { display: grid; gap: 0.75rem; }
+  .player {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    transition: background 0.15s;
+  }
+  .player:hover { background: var(--card-hover); }
+  .player-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+  .player-name { font-weight: 600; font-size: 1rem; }
+  .player-meta { color: var(--muted); font-size: 0.8rem; }
+  .magnitude { font-weight: 700; font-size: 1.05rem; white-space: nowrap; }
+  .magnitude.up { color: var(--up); }
+  .magnitude.down { color: var(--down); }
+  .pts { margin-top: 0.4rem; font-size: 0.85rem; color: var(--muted); }
+  .pts strong { color: var(--text); }
+  .rest-flag {
+    margin-top: 0.5rem;
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--warn);
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.35);
+    border-radius: 6px;
+    padding: 0.1rem 0.5rem;
+  }
+
+  .notice {
+    background: var(--card);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .notice.error { color: var(--warn); border-color: rgba(250, 204, 21, 0.35); }
+
+  /* ── AI assistant ──────────────────────────────────────────── */
+  .ai-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+  }
+  .ai-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    background: var(--accent);
+    color: #0f172a;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.1rem;
+    cursor: pointer;
+    transition: filter 0.15s, opacity 0.15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+  .lookup { display: none; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .lookup.open { display: flex; }
+  .lookup input {
+    font: inherit;
+    flex: 1 1 200px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+  }
+  .lookup input:focus { outline: none; border-color: var(--accent); }
+
+  .spinner {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    color: var(--muted);
+  }
+  .spinner.active { display: flex; }
+  .spinner::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ai-response {
+    display: none;
+    margin-top: 1rem;
+    background: var(--bg);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 0.92rem;
+  }
+  .ai-response.active { display: block; }
+  .ai-response .ai-title { font-weight: 700; margin-bottom: 0.5rem; color: var(--accent); }
+  .ai-response.error { border-left-color: var(--warn); color: var(--warn); }
+
+  footer { text-align: center; color: var(--muted); font-size: 0.75rem; padding: 1rem; }
+
+  @media (max-width: 720px) {
+    header h1 { font-size: 1.6rem; }
+    .trends { grid-template-columns: 1fr; }
+    .ai-actions button { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏀 <span>SwishOps</span></h1>
+  <p>NBA Fantasy Intelligence</p>
+</header>
+
+<main class="container">
+  <section>
+    <h2>Today's Games <small id="games-date"></small></h2>
+    <div class="games-bar" id="games"><div class="notice">Loading games…</div></div>
+  </section>
+
+  <section class="trends">
+    <div>
+      <h2>📈 Trending Up <small id="trends-updated"></small></h2>
+      <div class="player-list" id="trends-up"><div class="notice">Loading trends…</div></div>
+    </div>
+    <div>
+      <h2>📉 Trending Down</h2>
+      <div class="player-list" id="trends-down"><div class="notice">Loading trends…</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>AI Fantasy Assistant</h2>
+    <div class="ai-panel">
+      <div class="ai-actions">
+        <button id="btn-weekly">🎯 Get Weekly Picks</button>
+        <button id="btn-lookup" class="secondary">🔍 Player Lookup</button>
+      </div>
+      <form class="lookup" id="lookup-form">
+        <input id="player-id" type="number" min="1" step="1" placeholder="Enter player ID (e.g. 2544)" required>
+        <button type="submit" id="btn-lookup-submit">Get Recommendation</button>
+      </form>
+      <div class="spinner" id="ai-spinner">Asking the AI…</div>
+      <div class="ai-response" id="ai-response"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Trends refresh automatically every 5 minutes.</footer>
+
+<script>
+  const OFFLINE_MSG = '⚠️ Data unavailable — backend offline';
+  const MAX_PLAYERS = 6;
+  const TRENDS_REFRESH_MS = 5 * 60 * 1000;
+
+  // Build elements via textContent so data from the API is never parsed as HTML.
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = text;
+    return node;
+  }
+
+  function showNotice(container, message, isError) {
+    container.replaceChildren(el('div', isError ? 'notice error' : 'notice', message));
+  }
+
+  function fmt(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toFixed(1) : '—';
+  }
+
+  async function fetchJSON(url, options) {
+    const res = await fetch(url, options);
+    let body = null;
+    try { body = await res.json(); } catch (_) { /* non-JSON body */ }
+    if (!res.ok) {
+      const message = (body && (body.detail || body.error)) || `HTTP ${res.status}`;
+      const err = new Error(message);
+      err.status = res.status;
+      throw err;
+    }
+    return body;
+  }
+
+  // ── Today's games ────────────────────────────────────────────
+  async function loadGames() {
+    const container = document.getElementById('games');
+    try {
+      const data = await fetchJSON('/api/games');
+      const games = (data && data.games) || [];
+      document.getElementById('games-date').textContent = data && data.date ? data.date : '';
+      if (games.length === 0) {
+        showNotice(container, 'No games scheduled today.');
+        return;
+      }
+      container.replaceChildren(...games.map(renderGame));
+    } catch (err) {
+      console.error('Failed to load games:', err);
+      showNotice(container, OFFLINE_MSG, true);
+    }
+  }
+
+  function renderGame(game) {
+    const card = el('div', 'game');
+    const hasScore = game.home_score !== null && game.home_score !== undefined &&
+                     game.away_score !== null && game.away_score !== undefined;
+    card.append(
+      el('span', 'teams', `${game.home_team} vs ${game.away_team}`),
+      el('span', 'sep', '|'),
+      el('span', 'score', hasScore ? `${game.home_score} - ${game.away_score}` : '— - —'),
+      el('span', 'sep', '|'),
+      el('span', 'status', game.status || 'Scheduled'),
+    );
+    return card;
+  }
+
+  // ── Trends ───────────────────────────────────────────────────
+  async function loadTrends() {
+    const upEl = document.getElementById('trends-up');
+    const downEl = document.getElementById('trends-down');
+    try {
+      const data = await fetchJSON('/api/trends');
+      renderTrendList(upEl, (data && data.up) || [], 'up');
+      renderTrendList(downEl, (data && data.down) || [], 'down');
+      document.getElementById('trends-updated').textContent =
+        `updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } catch (err) {
+      console.error('Failed to load trends:', err);
+      showNotice(upEl, OFFLINE_MSG, true);
+      showNotice(downEl, OFFLINE_MSG, true);
+    }
+  }
+
+  function renderTrendList(container, players, direction) {
+    if (players.length === 0) {
+      showNotice(container, direction === 'up' ? 'No players trending up.' : 'No players trending down.');
+      return;
+    }
+    container.replaceChildren(...players.slice(0, MAX_PLAYERS).map(p => renderPlayer(p, direction)));
+  }
+
+  function renderPlayer(player, direction) {
+    const card = el('div', 'player');
+
+    const head = el('div', 'player-head');
+    const info = el('div');
+    info.append(
+      el('div', 'player-name', player.player_name),
+      el('div', 'player-meta', [player.team, player.position].filter(Boolean).join(' · ')),
+    );
+
+    // trend_magnitude is already a signed percentage vs. season average.
+    const magnitude = Number(player.trend_magnitude);
+    const magText = Number.isFinite(magnitude)
+      ? `${magnitude > 0 ? '+' : ''}${magnitude.toFixed(1)}%`
+      : '—';
+    head.append(info, el('div', `magnitude ${direction}`, magText));
+
+    const pts = el('div', 'pts');
+    pts.append(
+      'Last 5: ', el('strong', null, `${fmt(player.last5_avg_pts)} PPG`),
+      ' vs Season: ', el('strong', null, `${fmt(player.season_avg_pts)} PPG`),
+    );
+
+    card.append(head, pts);
+    if (player.rest_flag) {
+      card.append(el('div', 'rest-flag', '⚠️ Minutes dropped — possible rest/injury'));
+    }
+    return card;
+  }
+
+  // ── AI assistant ─────────────────────────────────────────────
+  const spinner = document.getElementById('ai-spinner');
+  const responseBox = document.getElementById('ai-response');
+  const aiButtons = [
+    document.getElementById('btn-weekly'),
+    document.getElementById('btn-lookup'),
+    document.getElementById('btn-lookup-submit'),
+  ];
+
+  function setAiLoading(loading) {
+    spinner.classList.toggle('active', loading);
+    aiButtons.forEach(b => { b.disabled = loading; });
+    if (loading) responseBox.classList.remove('active', 'error');
+  }
+
+  function showAiResponse(title, text, isError) {
+    responseBox.replaceChildren(el('div', 'ai-title', `🏀 ${title}`), el('div', null, text));
+    responseBox.classList.toggle('error', Boolean(isError));
+    responseBox.classList.add('active');
+  }
+
+  function aiErrorMessage(err) {
+    if (err.status === 503 || err instanceof TypeError) {
+      return '⚠️ AI service unavailable — please try again later.';
+    }
+    return `⚠️ ${err.message}`;
+  }
+
+  async function askAI(payload) {
+    return fetchJSON('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  document.getElementById('btn-weekly').addEventListener('click', async () => {
+    setAiLoading(true);
+    try {
+      const data = await askAI({ type: 'weekly-picks' });
+      const title = `Weekly Picks${data.week ? ` — ${data.week}` : ''}` +
+        (data.players_analyzed ? ` (${data.players_analyzed} players analyzed)` : '');
+      showAiResponse(title, data.picks || 'No picks returned.');
+    } catch (err) {
+      console.error('Weekly picks failed:', err);
+      showAiResponse('Weekly Picks', aiErrorMessage(err), true);
+    } finally {
+      setAiLoading(false);
+    }
+  });
+
+  document.getElementById('btn-lookup').addEventListener('click', () => {
+    const form = document.getElementById('lookup-form');
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) document.getElementById('player-id').focus();
+  });
+
+  document.getElementById('lookup-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const playerId = parseInt(document.getElementById('player-id').value, 10);
+    if (!Number.isInteger(playerId) || playerId <= 0) {
+      showAiResponse('Player Lookup', '⚠️ Please enter a valid numeric player ID.', true);
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const data = await askAI({ type: 'recommend', player_id: playerId });
+      showAiResponse(data.player || `Player ${playerId}`, data.recommendation || 'No recommendation returned.');
+    } catch (err) {
+      console.error('Player lookup failed:', err);
+      showAiResponse(`Player ${playerId}`, aiErrorMessage(err), true);
+    } finally {
+      setAiLoading(false);
+    }
+  });
+
+  // ── Startup ──────────────────────────────────────────────────
+  loadGames();
+  loadTrends();
+  setInterval(loadTrends, TRENDS_REFRESH_MS);
+</script>
+</body>
+</html>

@@ -26,3 +26,5 @@ hpa:
 config:
   environment: production
   apiBaseUrl: "http://swishops-backend-svc"
+  aiServiceUrl: "http://swishops-ai-service-svc"
+  port: "3000"
