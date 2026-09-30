@@ -1,7 +1,31 @@
+# Install dependencies for the Lambda Linux x86_64 runtime into lambda/package
+# and copy the handler alongside them. Re-runs when requirements.txt or
+# lambda_function.py change, or when lambda/package/ is absent (e.g. a fresh CI checkout).
+resource "null_resource" "lambda_dependencies" {
+  triggers = {
+    requirements_hash = filesha256("${path.root}/../lambda/requirements.txt")
+    source_hash       = filesha256("${path.root}/../lambda/lambda_function.py")
+    package_present   = fileexists("${path.root}/../lambda/package/lambda_function.py") ? "present" : timestamp()
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.root}/.."
+    command     = <<-EOT
+      set -e
+      rm -rf lambda/package
+      mkdir -p lambda/package
+      pip install -r lambda/requirements.txt -t lambda/package --platform manylinux2014_x86_64 --implementation cp --python-version 3.11 --only-binary=:all:
+      cp lambda/lambda_function.py lambda/package/
+    EOT
+  }
+}
+
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.root}/../lambda" 
+  source_dir  = "${path.root}/../lambda/package"
   output_path = "${path.module}/lambda_function.zip"
+
+  depends_on = [null_resource.lambda_dependencies]
 }
 
 resource "aws_lambda_function" "nba_data_fetcher" {
