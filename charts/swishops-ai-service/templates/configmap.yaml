@@ -5,5 +5,9 @@ metadata:
   labels:
     app.kubernetes.io/name: swishops-ai-service
 data:
-  ENVIRONMENT: {{ .Values.config.environment | default "production" }}
-  MODEL_NAME: {{ .Values.config.modelName | default "nba-stats-predictor-v1" }}
+  ENVIRONMENT: {{ .Values.config.environment | default "production" | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | default "info" | quote }}
+  MODEL_NAME: {{ .Values.config.modelName | default "nba-stats-predictor-v1" | quote }}
+  BACKEND_URL: {{ .Values.config.backendUrl | default "http://swishops-backend-svc" | quote }}
+  AWS_REGION: {{ .Values.config.awsRegion | default "us-east-1" | quote }}
+  BEDROCK_MODEL_ID: {{ .Values.config.bedrockModelId | default "anthropic.claude-opus-5" | quote }}

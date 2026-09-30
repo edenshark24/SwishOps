@@ -20,7 +20,11 @@ resources:
 
 config:
   environment: production
+  logLevel: info
   modelName: "nba-stats-predictor-v1"
+  backendUrl: "http://swishops-backend-svc"
+  awsRegion: "us-east-1"
+  bedrockModelId: "anthropic.claude-opus-5"
 
 hpa:
   minReplicas: 1
