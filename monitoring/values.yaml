@@ -9,14 +9,14 @@ prometheus:
         metrics_path: /metrics
         static_configs:
           - targets:
-              - "swishops-backend-svc.default.svc.cluster.local:8000"
+              - "swishops-backend-svc.default.svc.cluster.local:80"
             labels:
               service: swishops-backend
       - job_name: "swishops-ai-service"
         metrics_path: /metrics
         static_configs:
           - targets:
-              - "swishops-ai-service-svc.default.svc.cluster.local:5000"
+              - "swishops-ai-service-svc.default.svc.cluster.local:80"
             labels:
               service: swishops-ai-service
     resources:
