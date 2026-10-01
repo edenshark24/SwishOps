@@ -262,7 +262,7 @@ Before a first deploy, check the following points where the configuration in thi
 
 | Area | What to check | Where |
 |---|---|---|
-| Cluster name | Terraform names the cluster `<project_name>-<environment>-eks`, but the pipeline runs `update-kubeconfig --name swishops-cluster`. Make them match. | `terraform/modules/eks/main.tf`, `jenkins/Jenkinsfile` |
+| Cluster name | Terraform names the cluster `<project_name>-<environment>-eks` (`swishops-dev-eks` with the default `terraform.tfvars`). If you change `project_name` or `environment`, update `EKS_CLUSTER_NAME` in the Jenkinsfile to match. | `terraform/modules/eks/main.tf`, `jenkins/Jenkinsfile` |
 | ECR repo names | Terraform creates `<project_name>-<environment>-backend` (and so on), but the pipeline pushes to `swishops-backend` (and so on). Make them match. | `terraform/modules/ecr/main.tf`, `jenkins/Jenkinsfile` |
 | Jenkinsfile syntax | The *Deploy Monitoring Stack* stage uses `def` directly inside declarative `steps`. Wrap that block in `script { }`. | `jenkins/Jenkinsfile` |
 | Helm repo | Run `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` on the agent before the monitoring stage. | Jenkins agent |
