@@ -150,6 +150,8 @@ pipeline {
                     }
 
                     echo "🚀 Deploying/Upgrading Prometheus & Grafana Helm Chart..."
+                    sh "helm repo add prometheus-community https://prometheus-community.github.io/helm-charts"
+                    sh "helm repo update"
                     sh """
                         helm upgrade --install swishops-monitoring prometheus-community/kube-prometheus-stack \
                           --namespace monitoring \
