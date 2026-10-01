@@ -112,9 +112,9 @@ The root module's `backend "s3"` block stores state at `prod/terraform.tfstate` 
 | `secrets` | Secrets Manager entries for the DB password and NBA API key |
 | `lambda` | Lambda function (Python 3.11, packaged from `lambda/`), EventBridge schedule and invoke permission |
 
-### Also worth noting
+### Design notes
 
-- **Backend:** lazily created, lock-guarded psycopg2 connection pool. The app starts without a database, and DB outages return `503` instead of crashing.
+- **Fault-tolerant database layer:** The backend uses an on-demand, lock-guarded psycopg2 connection pool. It has no hard startup dependency on the database, so pods come up and pass health checks even if RDS is briefly unavailable. During a DB outage, endpoints degrade gracefully with `503` responses rather than crashing, and the pool recovers automatically once the database is reachable again.
 - **Helm charts:** one chart per service with liveness and readiness probes on `/health`, resource requests and limits, and a CPU-based HorizontalPodAutoscaler.
 
 ---
@@ -262,7 +262,7 @@ Before a first deploy, check the following points where the configuration in thi
 
 | Area | What to check | Where |
 |---|---|---|
-| Cluster name | Terraform names the cluster `<project_name>-<environment>-eks`, but the pipeline runs `update-kubeconfig --name swishops-cluster`. Make them match. | `terraform/modules/eks/main.tf`, `jenkins/Jenkinsfile` |
+| Cluster name | Terraform names the cluster `<project_name>-<environment>-eks` (`swishops-dev-eks` with the default `terraform.tfvars`). If you change `project_name` or `environment`, update `EKS_CLUSTER_NAME` in the Jenkinsfile to match. | `terraform/modules/eks/main.tf`, `jenkins/Jenkinsfile` |
 | ECR repo names | Terraform creates `<project_name>-<environment>-backend` (and so on), but the pipeline pushes to `swishops-backend` (and so on). Make them match. | `terraform/modules/ecr/main.tf`, `jenkins/Jenkinsfile` |
 | Jenkinsfile syntax | The *Deploy Monitoring Stack* stage uses `def` directly inside declarative `steps`. Wrap that block in `script { }`. | `jenkins/Jenkinsfile` |
 | Helm repo | Run `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts` on the agent before the monitoring stage. | Jenkins agent |

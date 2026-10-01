@@ -6,6 +6,8 @@ pipeline {
         // AWS_ACCOUNT_ID is injected as a global/job environment variable in Jenkins (never hardcode it)
         ECR_REGISTRY = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        // Must match "<project_name>-<environment>-eks" in terraform/modules/eks (values from terraform/terraform.tfvars)
+        EKS_CLUSTER_NAME = 'swishops-dev-eks'
         // Credentials IDs configured in Jenkins
         SONAR_CREDENTIAL_ID = 'sonar-token'
     }
@@ -87,7 +89,7 @@ pipeline {
             steps {
                 withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
                     echo "Updating kubeconfig for EKS cluster..."
-                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name swishops-cluster"
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
                     
                     echo "Deploying Backend..."
                     sh """
