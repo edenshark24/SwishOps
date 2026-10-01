@@ -112,9 +112,9 @@ The root module's `backend "s3"` block stores state at `prod/terraform.tfstate` 
 | `secrets` | Secrets Manager entries for the DB password and NBA API key |
 | `lambda` | Lambda function (Python 3.11, packaged from `lambda/`), EventBridge schedule and invoke permission |
 
-### Also worth noting
+### Design notes
 
-- **Backend:** lazily created, lock-guarded psycopg2 connection pool. The app starts without a database, and DB outages return `503` instead of crashing.
+- **Fault-tolerant database layer:** The backend uses an on-demand, lock-guarded psycopg2 connection pool. It has no hard startup dependency on the database, so pods come up and pass health checks even if RDS is briefly unavailable. During a DB outage, endpoints degrade gracefully with `503` responses rather than crashing, and the pool recovers automatically once the database is reachable again.
 - **Helm charts:** one chart per service with liveness and readiness probes on `/health`, resource requests and limits, and a CPU-based HorizontalPodAutoscaler.
 
 ---
