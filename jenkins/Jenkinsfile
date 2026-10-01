@@ -8,6 +8,8 @@ pipeline {
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         // Must match "<project_name>-<environment>-eks" in terraform/modules/eks (values from terraform/terraform.tfvars)
         EKS_CLUSTER_NAME = 'swishops-dev-eks'
+        // Must match "<project_name>-<environment>" in terraform/modules/ecr (values from terraform/terraform.tfvars)
+        ECR_REPO_PREFIX = 'swishops-dev'
         // Credentials IDs configured in Jenkins
         SONAR_CREDENTIAL_ID = 'sonar-token'
     }
@@ -55,9 +57,9 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo "Building Docker images with tag: ${IMAGE_TAG}"
-                sh "docker build -t ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG} ./backend"
-                sh "docker build -t ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG} ./ai-service"
-                sh "docker build -t ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG} ./frontend"
+                sh "docker build -t ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-backend:${IMAGE_TAG} ./backend"
+                sh "docker build -t ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-ai-service:${IMAGE_TAG} ./ai-service"
+                sh "docker build -t ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-frontend:${IMAGE_TAG} ./frontend"
             }
         }
         
@@ -65,9 +67,9 @@ pipeline {
             steps {
                 echo "Scanning built container images for vulnerabilities with Trivy..."
                 // Scan backend image and fail build on HIGH or CRITICAL vulnerabilities
-                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG}"
-                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG}"
-                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG}"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-backend:${IMAGE_TAG}"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-ai-service:${IMAGE_TAG}"
+                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-frontend:${IMAGE_TAG}"
             }
         }
         
@@ -78,9 +80,9 @@ pipeline {
                     sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
                     
                     echo "Pushing verified secure images to ECR..."
-                    sh "docker push ${ECR_REGISTRY}/swishops-backend:${IMAGE_TAG}"
-                    sh "docker push ${ECR_REGISTRY}/swishops-ai-service:${IMAGE_TAG}"
-                    sh "docker push ${ECR_REGISTRY}/swishops-frontend:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-backend:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-ai-service:${IMAGE_TAG}"
+                    sh "docker push ${ECR_REGISTRY}/${ECR_REPO_PREFIX}-frontend:${IMAGE_TAG}"
                 }
             }
         }
@@ -94,7 +96,7 @@ pipeline {
                     echo "Deploying Backend..."
                     sh """
                         helm upgrade --install swishops-backend ./charts/swishops-backend \
-                          --set image.repository=${ECR_REGISTRY}/swishops-backend \
+                          --set image.repository=${ECR_REGISTRY}/${ECR_REPO_PREFIX}-backend \
                           --set image.tag=${IMAGE_TAG} \
                           --atomic
                     """
@@ -102,7 +104,7 @@ pipeline {
                     echo "Deploying AI Service..."
                     sh """
                         helm upgrade --install swishops-ai-service ./charts/swishops-ai-service \
-                          --set image.repository=${ECR_REGISTRY}/swishops-ai-service \
+                          --set image.repository=${ECR_REGISTRY}/${ECR_REPO_PREFIX}-ai-service \
                           --set image.tag=${IMAGE_TAG} \
                           --atomic
                     """
@@ -110,7 +112,7 @@ pipeline {
                     echo "Deploying Frontend..."
                     sh """
                         helm upgrade --install swishops-frontend ./charts/swishops-frontend \
-                          --set image.repository=${ECR_REGISTRY}/swishops-frontend \
+                          --set image.repository=${ECR_REGISTRY}/${ECR_REPO_PREFIX}-frontend \
                           --set image.tag=${IMAGE_TAG} \
                           --atomic
                     """
