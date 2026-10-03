@@ -48,6 +48,7 @@ resource "aws_lambda_function" "nba_data_fetcher" {
   environment {
     variables = {
       DB_HOST                = var.db_host
+      DB_USER                = var.db_username
       NBA_API_KEY_SECRET_ARN = var.nba_api_key_secret_arn
       DB_PASSWORD_SECRET_ARN = var.db_password_secret_arn
     }
