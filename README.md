@@ -201,7 +201,7 @@ Images are pushed only after they pass the quality gate, the tests and the Trivy
 - **Secrets Manager:** Terraform stores the DB password and NBA API key in Secrets Manager, and the Lambda reads them at runtime. Jenkins pulls the Grafana admin password from Secrets Manager into a Kubernetes secret. The Terraform inputs are marked `sensitive`, and `terraform.tfvars` is gitignored.
 - **No API keys for Bedrock:** the AI service authenticates to Bedrock with IAM role credentials through the default boto3 credential chain.
 - **Non-root containers:** the backend and ai-service images run as a dedicated system user (`appuser`), and the frontend runs as the built-in `node` user.
-- **Private database:** RDS sits in private subnets with `publicly_accessible = false`. Its security group only admits port 5432 from the nodes / Lambda security group.
+- **Private database:** RDS sits in private subnets with `publicly_accessible = false`. Its security group only admits port 5432 from two sources: the nodes / Lambda security group and the EKS cluster security group.
 - **Encrypted, locked remote state:** S3 state bucket with SSE (AES256), versioning and `prevent_destroy`. The backend uses `encrypt = true` and DynamoDB locking.
 - **Supply-chain checks:** a SonarQube quality gate and a Trivy HIGH/CRITICAL gate in CI, plus ECR scan on push.
 - **No hardcoded account data in CI:** `AWS_ACCOUNT_ID` is injected as a Jenkins environment variable, and AWS access comes from the Jenkins credentials store.
@@ -269,7 +269,7 @@ Before a first deploy, check the following points where the configuration in thi
 | Lambda dependencies | `archive_file` zips `lambda/` as-is, so install `requirements.txt` into that folder for Linux x86_64 before `terraform apply`. | `terraform/modules/lambda/main.tf` |
 | Lambda DB settings | `db_host` receives `aws_db_instance.endpoint`, which is `host:port`, but the Lambda expects a bare hostname (`address`). `DB_USER` isn't passed, so the Lambda defaults to `dbadmin` while Terraform creates `swishops_admin`. | `terraform/main.tf`, `terraform/modules/lambda/main.tf` |
 | Backend DB settings | `db.user` now defaults to `swishops_admin` to match `db_username`. Update it if you change `db_username`. `db.host` has no static default: the Jenkinsfile passes `--set db.host` from a `DB_HOST` Jenkins environment variable, which you must set to the bare RDS address (see step 2) before running the pipeline. | `charts/swishops-backend/values.yaml`, `jenkins/Jenkinsfile` |
-| Pod → RDS access | The RDS security group only admits the custom nodes security group, which isn't attached to the EKS node group. Allow 5432 from the EKS cluster security group. | `terraform/modules/networking/main.tf` |
+| Pod → RDS access | Fixed in Terraform. The RDS security group admits 5432 from two sources: the EKS-managed cluster security group (`rds_from_eks_cluster`, attached to the node group, for backend pods) and the custom nodes security group (`rds_from_nodes`, used by the Lambda). No manual action needed. | `terraform/modules/networking/main.tf`, `terraform/modules/eks/outputs.tf`, `terraform/main.tf` |
 | Persistent volumes | The monitoring PVCs need the Amazon EBS CSI driver add-on on the cluster. | EKS add-ons |
 | Autoscaling | The HPAs need `metrics-server` installed in the cluster. | cluster add-on |
 | Bedrock model | Set `config.bedrockModelId` to a model ID that's enabled in your account. The default is `anthropic.claude-opus-5`. | `charts/swishops-ai-service/values.yaml` |

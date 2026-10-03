@@ -283,3 +283,13 @@ resource "aws_security_group_rule" "rds_from_nodes" {
   security_group_id        = aws_security_group.rds.id
   source_security_group_id = aws_security_group.eks_nodes.id
 }
+
+# RDS ← EKS cluster SG (EKS-managed, attached to the managed node group nodes)
+resource "aws_security_group_rule" "rds_from_eks_cluster" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.rds.id
+  source_security_group_id = var.eks_cluster_security_group_id
+}
