@@ -30,7 +30,12 @@ variable "db_password_secret_arn" {
 }
 
 variable "db_host" {
-  description = "RDS endpoint address"
+  description = "RDS hostname, without port"
+  type        = string
+}
+
+variable "db_username" {
+  description = "Database username the Lambda connects as"
   type        = string
 }
 

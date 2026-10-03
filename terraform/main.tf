@@ -82,5 +82,6 @@ module "lambda" {
   lambda_security_group_id = module.networking.nodes_security_group_id
   nba_api_key_secret_arn   = module.secrets.nba_api_key_arn
   db_password_secret_arn   = module.secrets.db_password_arn
-  db_host                  = module.rds.db_endpoint
+  db_host                  = module.rds.db_address
+  db_username              = var.db_username
 }
