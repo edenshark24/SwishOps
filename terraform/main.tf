@@ -24,9 +24,10 @@ provider "aws" {
 }
 
 module "networking" {
-  source       = "./modules/networking"
-  project_name = var.project_name
-  environment  = var.environment
+  source                        = "./modules/networking"
+  project_name                  = var.project_name
+  environment                   = var.environment
+  eks_cluster_security_group_id = module.eks.cluster_security_group_id
 }
 
 module "iam" {
@@ -54,15 +55,15 @@ module "eks" {
 }
 
 module "rds" {
-  source             = "./modules/rds"
-  project_name       = var.project_name
-  environment        = var.environment
+  source                = "./modules/rds"
+  project_name          = var.project_name
+  environment           = var.environment
   rds_security_group_id = module.networking.rds_security_group_id
-  vpc_id             = module.networking.vpc_id
-  private_subnet_ids = module.networking.private_subnet_ids
-  db_name            = var.db_name
-  db_username        = var.db_username
-  db_password        = var.db_password
+  vpc_id                = module.networking.vpc_id
+  private_subnet_ids    = module.networking.private_subnet_ids
+  db_name               = var.db_name
+  db_username           = var.db_username
+  db_password           = var.db_password
 }
 
 module "secrets" {
