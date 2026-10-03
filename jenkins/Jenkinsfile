@@ -94,10 +94,15 @@ pipeline {
                     sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
                     
                     echo "Deploying Backend..."
+                    // TODO: wire DB_HOST to the actual RDS address. For now it must be set as a global/job
+                    // environment variable in Jenkins: the bare hostname (no ":5432"), e.g. from
+                    // aws rds describe-db-instances ... --query 'DBInstances[0].Endpoint.Address'
+                    sh "test -n \"\${DB_HOST}\" || { echo 'ERROR: DB_HOST is not set in Jenkins environment'; exit 1; }"
                     sh """
                         helm upgrade --install swishops-backend ./charts/swishops-backend \
                           --set image.repository=${ECR_REGISTRY}/${ECR_REPO_PREFIX}-backend \
                           --set image.tag=${IMAGE_TAG} \
+                          --set db.host="\${DB_HOST}" \
                           --atomic
                     """
                     

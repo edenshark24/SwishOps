@@ -28,9 +28,14 @@ hpa:
   targetCPUUtilizationPercentage: 70
 
 db:
+  # The RDS address is only known after `terraform apply`, so it has no static default.
+  # Set it at deploy time with the bare hostname (no ":5432"):
+  #   helm upgrade --install ... --set db.host=<rds-address>
+  # The Jenkinsfile "Deploy to EKS via Helm" stage passes it from the DB_HOST env var.
   host: ""
   name: "swishops"
-  user: "dbadmin"
+  # Must match db_username in terraform/terraform.tfvars
+  user: "swishops_admin"
   port: "5432"
   passwordSecretName: "swishops-db-secret"
   passwordSecretKey: "password"
