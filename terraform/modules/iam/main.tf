@@ -53,6 +53,11 @@ resource "aws_iam_role_policy_attachment" "eks_bedrock_policy" {
   role       = aws_iam_role.eks_node_group.name
 }
 
+resource "aws_iam_role_policy_attachment" "eks_ebs_csi_policy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  role       = aws_iam_role.eks_node_group.name
+}
+
 resource "aws_iam_role" "lambda" {
   name = "${var.project_name}-${var.environment}-lambda"
 

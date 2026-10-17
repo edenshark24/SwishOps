@@ -270,8 +270,8 @@ Before a first deploy, check the following points where the configuration in thi
 | Lambda DB settings | Fixed in Terraform. `DB_HOST` gets the bare RDS hostname from the new `db_address` output (`aws_db_instance.address`, no port), and `DB_USER` is set from `db_username`, so it matches the user Terraform creates. No manual action needed. | `terraform/main.tf`, `terraform/modules/lambda/main.tf`, `terraform/modules/lambda/variables.tf`, `terraform/modules/rds/outputs.tf` |
 | Backend DB settings | `db.user` now defaults to `swishops_admin` to match `db_username`. Update it if you change `db_username`. `db.host` has no static default: the Jenkinsfile passes `--set db.host` from a `DB_HOST` Jenkins environment variable, which you must set to the bare RDS address (see step 2) before running the pipeline. | `charts/swishops-backend/values.yaml`, `jenkins/Jenkinsfile` |
 | Pod → RDS access | Fixed in Terraform. The RDS security group admits 5432 from two sources: the EKS-managed cluster security group (`rds_from_eks_cluster`, attached to the node group, for backend pods) and the custom nodes security group (`rds_from_nodes`, used by the Lambda). No manual action needed. | `terraform/modules/networking/main.tf`, `terraform/modules/eks/outputs.tf`, `terraform/main.tf` |
-| Persistent volumes | The monitoring PVCs need the Amazon EBS CSI driver add-on on the cluster. | EKS add-ons |
-| Autoscaling | The HPAs need `metrics-server` installed in the cluster. | cluster add-on |
+| Persistent volumes | Fixed in Terraform. The `aws-ebs-csi-driver` EKS add-on is installed after the node group, and `AmazonEBSCSIDriverPolicy` is attached to the node role, so the monitoring PVCs can bind. No manual action needed. | `terraform/modules/eks/main.tf`, `terraform/modules/iam/main.tf` |
+| Autoscaling | Fixed in the pipeline. The *Install metrics-server* stage installs `metrics-server` into `kube-system` with Helm (`--kubelet-insecure-tls`, needed for EKS kubelets' self-signed certs) before the app charts deploy, so the HPAs can read CPU usage. No manual action needed. | `jenkins/Jenkinsfile` |
 | Bedrock model | Set `config.bedrockModelId` to a model ID that's enabled in your account. The default is `anthropic.claude-opus-5`. | `charts/swishops-ai-service/values.yaml` |
 | State bucket name | S3 bucket names are global. If `swishops-terraform-state` is taken, change it in both files. | `terraform/bootstrap/main.tf`, `terraform/main.tf` |
 
@@ -433,7 +433,7 @@ The Lambda reads its secrets from Secrets Manager ARNs, so it's meant to run in 
 - Add a `docker-compose` setup with PostgreSQL for a free local demo.
 - Replace `AmazonBedrockFullAccess` on the node role with IRSA scoped to `bedrock:InvokeModel` for the ai-service only.
 - Add an Ingress (for example the AWS Load Balancer Controller) for the frontend. The networking module already defines an ALB security group.
-- Manage the EBS CSI driver and `metrics-server` in Terraform, and add root-level Terraform outputs.
+- Add root-level Terraform outputs. The EBS CSI driver add-on and the default `gp3` StorageClass are now managed in Terraform, and `metrics-server` is installed by the Jenkins pipeline.
 - Restrict the EKS security group's 443 ingress, which is currently `0.0.0.0/0` (TODO in `terraform/modules/networking/main.tf`).
 - Add unit tests for the Lambda trend calculation and `parse_minutes`.
 - Replace or remove the placeholder endpoints (`/api/nba/stats`, `/api/ai/predict`) and the unused `numpy` / `pandas` dependencies.
