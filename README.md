@@ -272,7 +272,7 @@ Before a first deploy, check the following points where the configuration in thi
 | Pod → RDS access | Fixed in Terraform. The RDS security group admits 5432 from two sources: the EKS-managed cluster security group (`rds_from_eks_cluster`, attached to the node group, for backend pods) and the custom nodes security group (`rds_from_nodes`, used by the Lambda). No manual action needed. | `terraform/modules/networking/main.tf`, `terraform/modules/eks/outputs.tf`, `terraform/main.tf` |
 | Persistent volumes | Fixed in Terraform. The `aws-ebs-csi-driver` EKS add-on is installed after the node group, and `AmazonEBSCSIDriverPolicy` is attached to the node role, so the monitoring PVCs can bind. No manual action needed. | `terraform/modules/eks/main.tf`, `terraform/modules/iam/main.tf` |
 | Autoscaling | Fixed in the pipeline. The *Install metrics-server* stage installs `metrics-server` into `kube-system` with Helm (`--kubelet-insecure-tls`, needed for EKS kubelets' self-signed certs) before the app charts deploy, so the HPAs can read CPU usage. No manual action needed. | `jenkins/Jenkinsfile` |
-| Bedrock model | Set `config.bedrockModelId` to a model ID that's enabled in your account. The default is `anthropic.claude-opus-5`. | `charts/swishops-ai-service/values.yaml` |
+| Bedrock model | Verified. `config.bedrockModelId` is set to `anthropic.claude-sonnet-5-5`, which is available in `us-east-1`. Make sure model access is enabled for it in your account. | `charts/swishops-ai-service/values.yaml` |
 | State bucket name | S3 bucket names are global. If `swishops-terraform-state` is taken, change it in both files. | `terraform/bootstrap/main.tf`, `terraform/main.tf` |
 
 ### 1. Bootstrap remote state

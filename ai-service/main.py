@@ -20,7 +20,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "nba-stats-predictor-v1")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "info")
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://swishops-backend-svc").rstrip("/")
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-opus-5")
+BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-5-5")
 BEDROCK_MAX_TOKENS = int(os.getenv("BEDROCK_MAX_TOKENS", "4096"))
 BACKEND_TIMEOUT = float(os.getenv("BACKEND_TIMEOUT", "10"))
 
