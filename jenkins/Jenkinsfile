@@ -87,6 +87,25 @@ pipeline {
             }
         }
         
+        stage('Install metrics-server') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
+                    echo "Updating kubeconfig for EKS cluster..."
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
+
+                    echo "Installing/Upgrading metrics-server for HPAs..."
+                    sh "helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/"
+                    sh "helm repo update"
+                    // EKS kubelets use self-signed certs, so metrics-server must skip TLS verification
+                    sh """
+                        helm upgrade --install metrics-server metrics-server/metrics-server \
+                          --namespace kube-system \
+                          --set args[0]=--kubelet-insecure-tls
+                    """
+                }
+            }
+        }
+
         stage('Deploy to EKS via Helm') {
             steps {
                 withCredentials([aws(credentialsId: 'aws-credentials', regionName: "${AWS_REGION}")]) {
